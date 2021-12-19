@@ -28,7 +28,8 @@ def sklearn_tuner(
         cv       = None,
         max_iter = 16, 
         report   = False,
-        hebo_cfg = None, 
+        hebo_cfg = None,
+        sample_weight = None
         ) -> (dict, pd.DataFrame):
     """Tuning sklearn estimator
 
@@ -64,6 +65,7 @@ def sklearn_tuner(
     X, y   = load_boston(return_X_y = True)
     result = sklearn_tuner(RandomForestRegressor, space_cfg, X, y, metric = r2_score, max_iter = 16)
     """
+
     if hebo_cfg is None:
         hebo_cfg = {}
     space = DesignSpace().parse(space_config)
@@ -73,8 +75,8 @@ def sklearn_tuner(
     for i in range(max_iter):
         rec     = opt.suggest()
         model   = model_class(**rec.iloc[0].to_dict())
-        pred    = cross_val_predict(model, X, y, cv = cv)
-        score_v = metric(y, pred)
+        pred    = cross_val_predict(model, X, y, cv = cv, fit_params = {"sample_weight":sample_weight})
+        score_v = metric(y, pred, sample_weight = sample_weight)
         sign    = -1. if greater_is_better else 1.0
         opt.observe(rec, np.array([sign * score_v]))
         print('Iter %d, best metric: %g' % (i, sign * opt.y.min()), flush = True)
